@@ -10,25 +10,57 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(rvest)
 library(broom)
+
 ```
 
 ##problem1
 
-*tidy data
-```{r}
-wp_df = read.csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv") %>% 
-  janitor::clean_names() %>% 
-  #Create a city_state variable and a binary variable indicating whether the homicide is solved.
-  mutate(
-    city_state = str_c(city,state,","), 
-    solve = ifelse(disposition == "Closed by arrest",TRUE,FALSE)
-  )
-
-
-```
+__Washington Post__
 
 Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. Modifiy victim_race to have categories white and non-white, with white as the reference category. Be sure that victim_age is numeric.
 
+```{r}
+Original_data = read.csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv") 
+wp_df = 
+  Original_data %>% 
+  janitor::clean_names() %>% 
+  #Create a city_state variable and a binary variable indicating whether the homicide is solved.
+  mutate(
+    city_state = str_c(city,state, sep = ", "), 
+    resolved = as.numeric(disposition == "Closed by arrest")
+  ) %>% 
+  #Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO
+  filter(
+    city_state != "Dallas, TX" & city_state !="Phoenix, AZ" & city_state !="Kansas City, MO" & city_state !="Tulsa, AL"
+  ) %>% 
+  mutate(
+    victim_race = ifelse(victim_race =="White","white","non_white"),
+    victim_race = fct_relevel(victim_race, "white"),
+    victim_age = as.numeric(victim_age)
+  )
+wp_df %>% head(5) 
+
+```
+
+
+For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors. 
+__Save the output of glm as an R object; __
+apply the  broom::tidy to this object; 
+and __obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.__
+
+```{r}
+#For the city of Baltimore, MD
+baltimore = wp_df %>% 
+  filter(city_state =="Baltimore, MD") 
+#fit a logistic regression
+fit_baltimore = glm(resolved ~ victim_age + victim_sex + victim_race , family = binomial(), data = baltimore)
+
+broom::tidy(fit_baltimore)
+#the estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims
+coef(fit_baltimore)["victim_racenon_white"]
+#the confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims
+confint(fit_baltimore,"victim_racenon_white")
+```
 
 
 
