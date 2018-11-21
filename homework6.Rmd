@@ -128,31 +128,46 @@ bw_df = orignal_bw %>%
   janitor::clean_names() %>% 
   #convert numeric to factor where appropriate
   mutate(
-    babysex = as.factor(babysex),
+    babysex = as.factor(ifelse(babysex==1,"male","female")),
     frace = as.factor(frace),
     malform = as.factor(malform),
     mrace = as.factor(mrace),
   )
 #check for missing data
 table(is.na(bw_df))
-  
 ```
 
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use  add_predictions and add_residuals in making this plot.
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. __Describe your modeling process__ and show a plot of model residuals against fitted values – use  add_predictions and add_residuals in making this plot.
 ```{r}
-
+reg = bw_df %>% 
+ select(bwt,babysex, bhead, blength) 
+#the distribution of baby’s birth weight
+ggplot(reg,aes(x = bwt))+geom_histogram()
+#likely normal
+#make a linear regression
+  fit_self = lm(bwt~babysex + bhead + blength , data = reg)
+  summary(fit_self)
+ pred_resid = modelr::add_predictions(reg, fit_self) 
+ pred_resid$resid = modelr::add_residuals(reg, fit_self) %>% pull(resid)
+ 
+  ggplot(pred_resid,aes(x = pred, y = resid))+
+  geom_point()+
+    labs(
+      title = "predictions vs residuals of the specific linear regression model",
+      y = "residual",
+      x = "prediction"
+    )
 ```
 
+##comments
 
-
-
-Compare your model to two others:
+ lm(bwt ~ babysex + bhead + blength + mrace + parity)
+    
+##Compare your model to two others:
 
 One using length at birth and gestational age as predictors (main effects only)
 One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
 Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in  purrr as appropriate.
-
-Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.
 
 
 

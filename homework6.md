@@ -176,7 +176,7 @@ bw_df = orignal_bw %>%
   janitor::clean_names() %>% 
   #convert numeric to factor where appropriate
   mutate(
-    babysex = as.factor(babysex),
+    babysex = as.factor(ifelse(babysex==1,"male","female")),
     frace = as.factor(frace),
     malform = as.factor(malform),
     mrace = as.factor(mrace),
@@ -189,10 +189,68 @@ table(is.na(bw_df))
     ## FALSE 
     ## 86840
 
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add\_predictions and add\_residuals in making this plot.
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. **Describe your modeling process** and show a plot of model residuals against fitted values – use add\_predictions and add\_residuals in making this plot.
+
+``` r
+reg = bw_df %>% 
+ select(bwt,babysex, bhead, blength) 
+#the distribution of baby’s birth weight
+ggplot(reg,aes(x = bwt))+geom_histogram()
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+<img src="homework6_files/figure-markdown_github/unnamed-chunk-7-1.png" width="100%" />
+
+``` r
+#likely normal
+#make a linear regression
+  fit_self = lm(bwt~babysex + bhead + blength , data = reg)
+  summary(fit_self)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = bwt ~ babysex + bhead + blength, data = reg)
+    ## 
+    ## Residuals:
+    ##      Min       1Q   Median       3Q      Max 
+    ## -1138.45  -190.36   -11.59   177.64  2693.95 
+    ## 
+    ## Coefficients:
+    ##              Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept) -6080.305     96.224 -63.189  < 2e-16 ***
+    ## babysexmale   -41.086      8.887  -4.623 3.89e-06 ***
+    ## bhead         148.175      3.512  42.192  < 2e-16 ***
+    ## blength        85.016      2.071  41.044  < 2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 288.5 on 4338 degrees of freedom
+    ## Multiple R-squared:  0.6829, Adjusted R-squared:  0.6827 
+    ## F-statistic:  3114 on 3 and 4338 DF,  p-value: < 2.2e-16
+
+``` r
+ pred_resid = modelr::add_predictions(reg, fit_self) 
+ pred_resid$resid = modelr::add_residuals(reg, fit_self) %>% pull(resid)
+ 
+  ggplot(pred_resid,aes(x = pred, y = resid))+
+  geom_point()+
+    labs(
+      title = "predictions vs residuals of the specific linear regression model",
+      y = "residual",
+      x = "prediction"
+    )
+```
+
+<img src="homework6_files/figure-markdown_github/unnamed-chunk-7-2.png" width="100%" />
+
+comments
+--------
+
+lm(bwt ~ babysex + bhead + blength + mrace + parity)
 
 Compare your model to two others:
+---------------------------------
 
 One using length at birth and gestational age as predictors (main effects only) One using head circumference, length, sex, and all interactions (including the three-way interaction) between these Make this comparison in terms of the cross-validated prediction error; use crossv\_mc and functions in purrr as appropriate.
-
-Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.
