@@ -133,5 +133,26 @@ city_glm
 
 #### Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
 
+``` r
+city_glm %>% 
+  mutate(
+    city_state = reorder(city_state,desc(OR))
+  ) %>% 
+ggplot(aes(x = city_state, y = OR))+ geom_line()+
+  geom_errorbar(aes(x= city_state,ymin = CI.low, ymax = CI.high))+
+  labs(
+    y = "Odd ratio ",
+    title = "odd ratio of homocides solving comparing non-white to white victims in United States"
+  )+
+  theme(
+    axis.text.x = element_text(angle = 90 , hjust = 1)
+  )
+```
+
+    ## geom_path: Each group consists of only one observation. Do you need to
+    ## adjust the group aesthetic?
+
+![](homework6_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
 problem2
 --------
