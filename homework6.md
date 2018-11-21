@@ -8,7 +8,7 @@ problem1
 
 **Washington Post**
 
-Create a city\_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. Modifiy victim\_race to have categories white and non-white, with white as the reference category. Be sure that victim\_age is numeric.
+#### Create a city\_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. Modifiy victim\_race to have categories white and non-white, with white as the reference category. Be sure that victim\_age is numeric.
 
 ``` r
 Original_data = read.csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv") 
@@ -51,7 +51,9 @@ wp_df %>% head(5)
     ## 4 Albuquerque, NM        1
     ## 5 Albuquerque, NM        0
 
-For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors. **Save the output of glm as an R object; ** apply the broom::tidy to this object; and **obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.**
+#### For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors.
+
+**Save the output of glm as an R object; ** apply the broom::tidy to this object; and **obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.**
 
 ``` r
 #For the city of Baltimore, MD
@@ -73,21 +75,63 @@ broom::tidy(fit_baltimore)
 
 ``` r
 #the estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims
-coef(fit_baltimore)["victim_racenon_white"]
+coef(fit_baltimore)["victim_racenon_white"] %>% exp()
 ```
 
     ## victim_racenon_white 
-    ##            -0.792922
+    ##            0.4525206
 
 ``` r
 #the confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims
-confint(fit_baltimore,"victim_racenon_white")
+confint(fit_baltimore,"victim_racenon_white")%>% exp()
 ```
 
     ## Waiting for profiling to be done...
 
-    ##      2.5 %     97.5 % 
-    ## -1.1367271 -0.4526207
+    ##     2.5 %    97.5 % 
+    ## 0.3208675 0.6359593
+
+#### Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims.
+
+Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+
+``` r
+ city_glm =
+  wp_df %>% 
+  select(resolved, city_state, victim_race,victim_age,victim_sex) %>% 
+  group_by(city_state) %>% 
+  nest() %>% 
+  mutate(
+    model = map(data,~glm(resolved ~ victim_age + victim_sex + victim_race ,family = binomial(),data = .)),
+    model = map(model, ~broom::tidy(.,conf.int = TRUE))
+)  %>% 
+   select(-data) %>% 
+  unnest() %>% 
+  filter(term == "victim_racenon_white")  %>% 
+  mutate(OR = exp(estimate),
+         CI.low = exp(conf.low),
+         CI.high = exp(conf.high)) %>% 
+  select(city_state,OR,CI.low ,CI.high ) 
+
+city_glm
+```
+
+    ## # A tibble: 47 x 4
+    ##    city_state         OR CI.low CI.high
+    ##    <chr>           <dbl>  <dbl>   <dbl>
+    ##  1 Albuquerque, NM 0.686 0.416    1.12 
+    ##  2 Atlanta, GA     0.767 0.433    1.32 
+    ##  3 Baltimore, MD   0.453 0.321    0.636
+    ##  4 Baton Rouge, LA 0.656 0.299    1.38 
+    ##  5 Birmingham, AL  1.05  0.619    1.76 
+    ##  6 Boston, MA      0.121 0.0447   0.272
+    ##  7 Buffalo, NY     0.447 0.243    0.811
+    ##  8 Charlotte, NC   0.555 0.318    0.931
+    ##  9 Chicago, IL     0.575 0.442    0.751
+    ## 10 Cincinnati, OH  0.327 0.186    0.554
+    ## # ... with 37 more rows
+
+#### Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
 
 problem2
 --------
