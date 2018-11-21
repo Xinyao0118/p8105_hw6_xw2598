@@ -3,6 +3,14 @@ Homework6
 Xinyao Wu
 2018/11/16
 
+``` r
+knitr::opts_chunk$set(
+  fig.width = 12,
+  fig.asp = .6,
+  out.width = "100%"
+)
+```
+
 problem1
 --------
 
@@ -152,7 +160,39 @@ ggplot(aes(x = city_state, y = OR))+ geom_line()+
     ## geom_path: Each group consists of only one observation. Do you need to
     ## adjust the group aesthetic?
 
-![](homework6_files/figure-markdown_github/unnamed-chunk-4-1.png)
+<img src="homework6_files/figure-markdown_github/unnamed-chunk-5-1.png" width="100%" />
+
+Comment:
+--------
 
 problem2
 --------
+
+Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
+
+``` r
+orignal_bw = read.csv("./data/birthweight.csv")
+bw_df = orignal_bw %>% 
+  janitor::clean_names() %>% 
+  #convert numeric to factor where appropriate
+  mutate(
+    babysex = as.factor(babysex),
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace),
+  )
+#check for missing data
+table(is.na(bw_df))
+```
+
+    ## 
+    ## FALSE 
+    ## 86840
+
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add\_predictions and add\_residuals in making this plot.
+
+Compare your model to two others:
+
+One using length at birth and gestational age as predictors (main effects only) One using head circumference, length, sex, and all interactions (including the three-way interaction) between these Make this comparison in terms of the cross-validated prediction error; use crossv\_mc and functions in purrr as appropriate.
+
+Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.
