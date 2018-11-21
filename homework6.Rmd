@@ -165,8 +165,46 @@ ggplot(reg,aes(x = bwt))+geom_histogram()
     
 ##Compare your model to two others:
 
+*cv set
+```{r}
+cv_df =
+  crossv_mc(bw_df, 100) %>% 
+  mutate(train = map(train, as_tibble),
+         test = map(test, as_tibble))
+```
+
+
+```{r}
+cv_df = cv_df %>% 
+  mutate(
+    non_nest_mod = map(train,~lm(bwt~blength + gaweeks,data = .x)),
+    nest_mod = map(train,~lm(bwt~bhead * blength * babysex,data = .x)),
+    self_mod = map(train,~lm(bwt~babysex + bhead + blength,data = .x))
+  ) %>% 
+  mutate(
+    rmse_non_nest   = map2_dbl(non_nest_mod, test, ~rmse(model = .x, data = .y)),
+    rmse_nest   = map2_dbl(nest_mod, test, ~rmse(model = .x, data = .y)),
+    rmse_self   = map2_dbl(self_mod, test, ~rmse(model = .x, data = .y))
+  )
+
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+  gather(key = "model",value = rmse) %>%
+  mutate(
+    model = str_replace(model,"rmse_",""),
+    model = fct_inorder(model)
+         ) %>% 
+  ggplot(aes(x = model, y = rmse))+geom_violin()+
+  labs(
+    title = "Rmse distribution in three different model cross-validations"
+  )
+
+```
+
+
 One using length at birth and gestational age as predictors (main effects only)
 One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+
 Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in  purrr as appropriate.
 
 
