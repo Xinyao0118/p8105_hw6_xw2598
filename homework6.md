@@ -16,7 +16,13 @@ problem1
 
 **Washington Post**
 
-#### Create a city\_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. Modifiy victim\_race to have categories white and non-white, with white as the reference category. Be sure that victim\_age is numeric.
+##### (1) Tidy Data
+
+*disposition: new binary variable*
+
+*delete records:Dallas, TX; Phoenix, AZ; and Kansas City, MO*
+
+*exhibit head 5 lines of dataset*
 
 ``` r
 Original_data = read.csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv") 
@@ -59,9 +65,13 @@ wp_df %>% head(5)
     ## 4 Albuquerque, NM        1
     ## 5 Albuquerque, NM        0
 
-#### For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors.
+##### (2)"Baltimore, MD": use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors.
 
-**Save the output of glm as an R object; ** apply the broom::tidy to this object; and **obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.**
+*1)Save the output of glm as an R object *
+
+*2)apply the broom::tidy to this object*
+
+*3)obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.*
 
 ``` r
 #For the city of Baltimore, MD
@@ -71,35 +81,27 @@ baltimore = wp_df %>%
 fit_baltimore = glm(resolved ~ victim_age + victim_sex + victim_race , family = binomial(), data = baltimore)
 
 broom::tidy(fit_baltimore)
-```
-
-    ## # A tibble: 4 x 5
-    ##   term                 estimate std.error statistic  p.value
-    ##   <chr>                   <dbl>     <dbl>     <dbl>    <dbl>
-    ## 1 (Intercept)           1.05      0.227        4.62 3.78e- 6
-    ## 2 victim_age           -0.00374   0.00303     -1.23 2.17e- 1
-    ## 3 victim_sexMale       -0.885     0.136       -6.50 8.08e-11
-    ## 4 victim_racenon_white -0.793     0.174       -4.55 5.33e- 6
-
-``` r
+## # A tibble: 4 x 5
+##   term                 estimate std.error statistic  p.value
+##   <chr>                   <dbl>     <dbl>     <dbl>    <dbl>
+## 1 (Intercept)           1.05      0.227        4.62 3.78e- 6
+## 2 victim_age           -0.00374   0.00303     -1.23 2.17e- 1
+## 3 victim_sexMale       -0.885     0.136       -6.50 8.08e-11
+## 4 victim_racenon_white -0.793     0.174       -4.55 5.33e- 6
 #the estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims
 coef(fit_baltimore)["victim_racenon_white"] %>% exp()
-```
-
-    ## victim_racenon_white 
-    ##            0.4525206
-
-``` r
+## victim_racenon_white 
+##            0.4525206
 #the confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims
 confint(fit_baltimore,"victim_racenon_white")%>% exp()
+## Waiting for profiling to be done...
+##     2.5 %    97.5 % 
+## 0.3208675 0.6359593
 ```
 
-    ## Waiting for profiling to be done...
+The estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims is 0.453, and the 95% CI is (0.321,0.636).
 
-    ##     2.5 %    97.5 % 
-    ## 0.3208675 0.6359593
-
-#### Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims.
+##### (3)Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims.
 
 Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
 
@@ -121,25 +123,18 @@ Do this within a “tidy” pipeline, making use of purrr::map, list columns, an
          CI.high = exp(conf.high)) %>% 
   select(city_state,OR,CI.low ,CI.high ) 
 
-city_glm
+ knitr::kable(head(city_glm,5))
 ```
 
-    ## # A tibble: 47 x 4
-    ##    city_state         OR CI.low CI.high
-    ##    <chr>           <dbl>  <dbl>   <dbl>
-    ##  1 Albuquerque, NM 0.686 0.416    1.12 
-    ##  2 Atlanta, GA     0.767 0.433    1.32 
-    ##  3 Baltimore, MD   0.453 0.321    0.636
-    ##  4 Baton Rouge, LA 0.656 0.299    1.38 
-    ##  5 Birmingham, AL  1.05  0.619    1.76 
-    ##  6 Boston, MA      0.121 0.0447   0.272
-    ##  7 Buffalo, NY     0.447 0.243    0.811
-    ##  8 Charlotte, NC   0.555 0.318    0.931
-    ##  9 Chicago, IL     0.575 0.442    0.751
-    ## 10 Cincinnati, OH  0.327 0.186    0.554
-    ## # ... with 37 more rows
+| city\_state     |         OR|     CI.low|    CI.high|
+|:----------------|----------:|----------:|----------:|
+| Albuquerque, NM |  0.6860531|  0.4158651|  1.1237789|
+| Atlanta, GA     |  0.7667500|  0.4332108|  1.3204368|
+| Baltimore, MD   |  0.4525206|  0.3208675|  0.6359593|
+| Baton Rouge, LA |  0.6558545|  0.2991473|  1.3796610|
+| Birmingham, AL  |  1.0471153|  0.6194345|  1.7589481|
 
-#### Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
+##### (5)Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
 
 ``` r
 city_glm %>% 
@@ -147,13 +142,15 @@ city_glm %>%
     city_state = reorder(city_state,desc(OR))
   ) %>% 
 ggplot(aes(x = city_state, y = OR))+ geom_line()+
+  geom_point()+
   geom_errorbar(aes(x= city_state,ymin = CI.low, ymax = CI.high))+
   labs(
-    y = "Odd ratio ",
+    x = "City, State",
+    y = "Adjusted Odd ratio ",
     title = "odd ratio of homocides solving comparing non-white to white victims in United States"
   )+
   theme(
-    axis.text.x = element_text(angle = 90 , hjust = 1)
+    axis.text.x = element_text(angle = 45 , hjust = 1)
   )
 ```
 
@@ -164,6 +161,8 @@ ggplot(aes(x = city_state, y = OR))+ geom_line()+
 
 Comment:
 --------
+
+Most cities who have a higher OR are tending to have a wider OR confidence interval.`Tampa,Fl`,`Durham,NC`,`Birmingham,AL` these three cities have a OR higher than 1, which indicates in these cities, homicides with non-white victims are more likely to be solved. However, since they all have a wide 95% confidence interval, which include point 1, there still exists some probability that homicides with non-white victims are equal or less likely to be solved.
 
 problem2
 --------
