@@ -57,13 +57,7 @@ wp_df %>% head(5)
 ```
 
 
-#####(2)"Baltimore, MD": use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors.
-
-_1)Save the output of glm as an R object _
-
-_2)apply the  broom::tidy to this object_ 
-
-_3)obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed._
+#####(2)Fit a logistic regression for "Baltimore, MD"
 
 ```{r collapse=TRUE}
 #For the city of Baltimore, MD
@@ -81,9 +75,7 @@ confint(fit_baltimore,"victim_racenon_white")%>% exp()
 
 The estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims is 0.453, and the 95% CI is (0.321,0.636).
 
-#####(3)Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims.
-
-Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+#####(3)Glm for each of the cities and extract the adjusted odds ratio (and CI) 
 
 ```{r warning=FALSE}
  city_glm =
@@ -103,7 +95,7 @@ Do this within a “tidy” pipeline, making use of purrr::map, list columns, an
          CI.high = exp(conf.high)) %>% 
   select(city_state,OR,CI.low ,CI.high ) 
 
- knitr::kable(head(city_glm,5))
+ knitr::kable(city_glm)
 ```
 
 #####(5)Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.

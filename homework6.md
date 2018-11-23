@@ -65,13 +65,7 @@ wp_df %>% head(5)
     ## 4 Albuquerque, NM        1
     ## 5 Albuquerque, NM        0
 
-##### (2)"Baltimore, MD": use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors.
-
-*1)Save the output of glm as an R object *
-
-*2)apply the broom::tidy to this object*
-
-*3)obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed.*
+##### (2)Fit a logistic regression for "Baltimore, MD"
 
 ``` r
 #For the city of Baltimore, MD
@@ -101,9 +95,7 @@ confint(fit_baltimore,"victim_racenon_white")%>% exp()
 
 The estimate of the adjusted odds ratio for solving homicides comparing non-white victims to white victims is 0.453, and the 95% CI is (0.321,0.636).
 
-##### (3)Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing non-white victims to white victims.
-
-Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+##### (3)Glm for each of the cities and extract the adjusted odds ratio (and CI)
 
 ``` r
  city_glm =
@@ -123,16 +115,58 @@ Do this within a “tidy” pipeline, making use of purrr::map, list columns, an
          CI.high = exp(conf.high)) %>% 
   select(city_state,OR,CI.low ,CI.high ) 
 
- knitr::kable(head(city_glm,5))
+ knitr::kable(city_glm)
 ```
 
-| city\_state     |         OR|     CI.low|    CI.high|
-|:----------------|----------:|----------:|----------:|
-| Albuquerque, NM |  0.6860531|  0.4158651|  1.1237789|
-| Atlanta, GA     |  0.7667500|  0.4332108|  1.3204368|
-| Baltimore, MD   |  0.4525206|  0.3208675|  0.6359593|
-| Baton Rouge, LA |  0.6558545|  0.2991473|  1.3796610|
-| Birmingham, AL  |  1.0471153|  0.6194345|  1.7589481|
+| city\_state        |         OR|     CI.low|    CI.high|
+|:-------------------|----------:|----------:|----------:|
+| Albuquerque, NM    |  0.6860531|  0.4158651|  1.1237789|
+| Atlanta, GA        |  0.7667500|  0.4332108|  1.3204368|
+| Baltimore, MD      |  0.4525206|  0.3208675|  0.6359593|
+| Baton Rouge, LA    |  0.6558545|  0.2991473|  1.3796610|
+| Birmingham, AL     |  1.0471153|  0.6194345|  1.7589481|
+| Boston, MA         |  0.1205147|  0.0447382|  0.2718771|
+| Buffalo, NY        |  0.4474175|  0.2428559|  0.8114462|
+| Charlotte, NC      |  0.5550724|  0.3176813|  0.9308972|
+| Chicago, IL        |  0.5751690|  0.4418968|  0.7512545|
+| Cincinnati, OH     |  0.3269424|  0.1855044|  0.5539299|
+| Columbus, OH       |  0.8844860|  0.6571620|  1.1912101|
+| Denver, CO         |  0.5942632|  0.3516149|  0.9984268|
+| Detroit, MI        |  0.6609813|  0.4954501|  0.8811824|
+| Durham, NC         |  1.1528002|  0.4461779|  2.8513251|
+| Fort Worth, TX     |  0.8527376|  0.5630263|  1.2856761|
+| Fresno, CA         |  0.4574375|  0.2279975|  0.8614185|
+| Houston, TX        |  0.9207334|  0.7383821|  1.1478080|
+| Indianapolis, IN   |  0.5162217|  0.3894364|  0.6810646|
+| Jacksonville, FL   |  0.6805895|  0.5188224|  0.8914835|
+| Las Vegas, NV      |  0.7883387|  0.6125905|  1.0123323|
+| Long Beach, CA     |  0.8428440|  0.4036730|  1.7021042|
+| Los Angeles, CA    |  0.7176698|  0.5229269|  0.9797933|
+| Louisville, KY     |  0.4336608|  0.2863436|  0.6500960|
+| Memphis, TN        |  0.8066744|  0.5362340|  1.1942958|
+| Miami, FL          |  0.5768849|  0.3792302|  0.8785443|
+| Milwaukee, wI      |  0.6598363|  0.4166015|  1.0220458|
+| Minneapolis, MN    |  0.6665973|  0.3509751|  1.2480053|
+| Nashville, TN      |  0.8919720|  0.6469603|  1.2251676|
+| New Orleans, LA    |  0.5105893|  0.3254921|  0.8014908|
+| New York, NY       |  0.5481259|  0.2793238|  1.0187471|
+| Oakland, CA        |  0.2174194|  0.1010541|  0.4265683|
+| Oklahoma City, OK  |  0.7114617|  0.5026591|  1.0045578|
+| Omaha, NE          |  0.1795682|  0.0964159|  0.3171570|
+| Philadelphia, PA   |  0.6615811|  0.4979879|  0.8733839|
+| Pittsburgh, PA     |  0.2896680|  0.1621670|  0.4981128|
+| Richmond, VA       |  0.4882646|  0.1619032|  1.2038615|
+| San Antonio, TX    |  0.6983376|  0.4658904|  1.0362874|
+| Sacramento, CA     |  0.7743855|  0.4415561|  1.3301655|
+| Savannah, GA       |  0.6437600|  0.3084459|  1.3108709|
+| San Bernardino, CA |  0.9462056|  0.4274584|  2.1341564|
+| San Diego, CA      |  0.4339041|  0.2637610|  0.6990111|
+| San Francisco, CA  |  0.4577118|  0.2876816|  0.7179243|
+| St. Louis, MO      |  0.6010156|  0.4225284|  0.8504212|
+| Stockton, CA       |  0.3954507|  0.2047117|  0.7467064|
+| Tampa, FL          |  1.1845998|  0.6105905|  2.2990952|
+| Tulsa, OK          |  0.5857297|  0.4003695|  0.8499751|
+| Washington, DC     |  0.5268148|  0.2583887|  1.0199716|
 
 ##### (5)Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
 
