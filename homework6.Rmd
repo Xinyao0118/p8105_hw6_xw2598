@@ -132,7 +132,7 @@ Most cities who have a higher OR are tending to have a wider OR confidence inter
 
 ##problem2
 
-Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
+####(1)Load and clean the data for regression analysis
 ```{r}
 orignal_bw = read.csv("./data/birthweight.csv")
 bw_df = orignal_bw %>% 
@@ -142,27 +142,48 @@ bw_df = orignal_bw %>%
     babysex = as.factor(ifelse(babysex==1,"male","female")),
     frace = as.factor(frace),
     malform = as.factor(malform),
-    mrace = as.factor(mrace),
+    mrace = as.factor(mrace)
   )
 #check for missing data
 table(is.na(bw_df))
 ```
 
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. __Describe your modeling process__ and show a plot of model residuals against fitted values – use  add_predictions and add_residuals in making this plot.
+####(2)Propose a regression model for birthweight. 
+
+This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. __Describe your modeling process__ and show a plot of model residuals against fitted values – use  add_predictions and add_residuals in making this plot.
+
+__1)choose predictors__
+```{r}
+choose_predi = lm(bwt~.,data = bw_df)
+broom::tidy(choose_predi) %>% 
+  select(term,p.value) %>% 
+ arrange(p.value) 
+```
+
+Based on the p-value rank and the rule of parsimony, we choose the three lowest p-value owner `bhead`,`blength`,`delwt` as the preditors of our model.
+The linear regression model will be :
+
+ $$\hat{bwt}  =   bhead + blength + delwt$$
+__2)check the distribution of `bwt`__
 ```{r}
 reg = bw_df %>% 
- select(bwt,babysex, bhead, blength) 
+ select(bwt,delwt, bhead, blength) 
 #the distribution of baby’s birth weight
 ggplot(reg,aes(x = bwt))+geom_histogram()
 #likely normal
+```
+
+Since it is appromately normal distribution, we directly use linear regression.
+
+```{r}
 #make a linear regression
-  fit_self = lm(bwt~babysex + bhead + blength , data = reg)
+  fit_self = lm(bwt~delwt + bhead + blength , data = reg)
   summary(fit_self)
  pred_resid = modelr::add_predictions(reg, fit_self) 
  pred_resid$resid = modelr::add_residuals(reg, fit_self) %>% pull(resid)
  
   ggplot(pred_resid,aes(x = pred, y = resid))+
-  geom_point()+
+  geom_point(alpha = 0.3 )+
     labs(
       title = "predictions vs residuals of the specific linear regression model",
       y = "residual",
@@ -171,12 +192,12 @@ ggplot(reg,aes(x = bwt))+geom_histogram()
 ```
 
 ##comments
+The residuals do not have a desired horizontally symmetric distributed pattern. Espectially when prediction are (0,1000), most residuals seems to have  positive value. Meanwhile, 5 points` residual are beyond 1000 as well as 2 are beyond -1000. However, Most residuals lied between (-1000,+1000). We cannot expect all of the points to have a perfect horizontally symmetric distribution in reality, so this model fits well.
 
- lm(bwt ~ babysex + bhead + blength + mrace + parity)
-    
-##Compare your model to two others:
+##Compare my model to two others:
 
-*cv set
+__cv set__
+
 ```{r}
 cv_df =
   crossv_mc(bw_df, 100) %>% 
@@ -184,13 +205,13 @@ cv_df =
          test = map(test, as_tibble))
 ```
 
-
+__plot rmse distribution__
 ```{r}
 cv_df = cv_df %>% 
   mutate(
     non_nest_mod = map(train,~lm(bwt~blength + gaweeks,data = .x)),
     nest_mod = map(train,~lm(bwt~bhead * blength * babysex,data = .x)),
-    self_mod = map(train,~lm(bwt~babysex + bhead + blength,data = .x))
+    self_mod = map(train,~lm(bwt~delwt + bhead + blength,data = .x))
   ) %>% 
   mutate(
     rmse_non_nest   = map2_dbl(non_nest_mod, test, ~rmse(model = .x, data = .y)),
@@ -212,12 +233,7 @@ cv_df %>%
 
 ```
 
-
-One using length at birth and gestational age as predictors (main effects only)
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
-
-Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in  purrr as appropriate.
-
+My model which set `delwt`(mother’s weight at delivery,pounds),`bhead`(baby’s head circumference at birth,centimeters),`blength`(baby’s length at birth,centimeteres) as predictors has a subtle lower rmse than the other two models. Meanwhile, my model has fewer predictors which may cause lower bias when predicting the birthweight.
 
 
 
