@@ -12,6 +12,7 @@ library(rvest)
 library(broom)
 library(modelr)
 library(mgcv)
+library(leaps)
 ```
 
 ```{r}
@@ -144,7 +145,16 @@ table(is.na(bw_df))
 
 This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. __Describe your modeling process__ and show a plot of model residuals against fitted values – use  add_predictions and add_residuals in making this plot.
 
-__1)choose predictors__
+__1)check the distribution of `bwt`__
+```{r}
+bw_df %>% 
+#the distribution of baby’s birth weight
+ggplot(aes(x = bwt))+geom_histogram()
+#likely normal
+```
+__2)choose predictors__
+
+Although there are variables,such as `blength`,`bhead`,`baby sex` and so on, that cannot be seen as logic predictors for birthweight since they are all outcomes as birthweight, to more specificly know the p-value of all the variables, we make a total linear regression first.
 ```{r}
 choose_predi = lm(bwt~.,data = bw_df)
 broom::tidy(choose_predi) %>% 
@@ -152,30 +162,45 @@ broom::tidy(choose_predi) %>%
  arrange(p.value) 
 ```
 
-Based on the p-value rank and the rule of parsimony, we choose the three lowest p-value owner `bhead`,`blength`,`delwt` as the preditors of our model.
-The linear regression model will be :
-
- $$\hat{bwt}  =   bhead + blength + delwt$$
-__2)check the distribution of `bwt`__
+The three lowest p-value owner are `bhead`,`blength`,`delwt`.However, obviously they are not factors that can underly birthweight except `delwt`. Sometimes we keep such variables to adjust the coefficient value for other variables so we are not sure whether to delet such variables from modeling or not. Thus, I will make a new model mainly based on data-driven model-building process.
+ 
 ```{r}
-reg = bw_df %>% 
- select(bwt,delwt, bhead, blength) 
-#the distribution of baby’s birth weight
-ggplot(reg,aes(x = bwt))+geom_histogram()
-#likely normal
+lm(bwt ~ ., data = bw_df) %>% 
+  step(direction='both')
 ```
 
-Since it is appromately normal distribution, we directly use linear regression.
+To aviod overfit, we only choose 6 factors as our model`s predictors.
+
+```{r}
+fit_test1 = lm(bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken, data = bw_df)
+broom::tidy(fit_test1) %>% arrange(p.value)
+```
+ We will choose variables based on the rank of p-value above, that is: `bhead`,`blength`,`mrace`,`delwt`,`smoken`,`gaweeks`.
+ Then we will see how fittable of this model:
+```{r}
+fit_test2 = lm(bwt~bhead+blength+mrace+delwt+smoken+gaweeks,data = bw_df)
+broom::glance(fit_test2)
+```
+ 
+The R_squared is 0.713, which seems it fits well.
+ 
+
+__3)Regression model and Plot__
+
+Sincebirthweight is appromately normal distribution, we directly use linear regression.
 
 ```{r}
 #make a linear regression
-  fit_self = lm(bwt~delwt + bhead + blength , data = reg)
+  fit_self = lm(bwt~bhead+blength+mrace+delwt+smoken+gaweeks,data = bw_df)
   summary(fit_self)
+   reg = bw_df %>% 
+     select(bwt,bhead,blength,mrace,delwt, smoken, gaweeks) 
  pred_resid = modelr::add_predictions(reg, fit_self) 
  pred_resid$resid = modelr::add_residuals(reg, fit_self) %>% pull(resid)
  
   ggplot(pred_resid,aes(x = pred, y = resid))+
   geom_point(alpha = 0.3 )+
+     geom_smooth(se = FALSE)
     labs(
       title = "predictions vs residuals of the specific linear regression model",
       y = "residual",
@@ -203,7 +228,7 @@ cv_df = cv_df %>%
   mutate(
     non_nest_mod = map(train,~lm(bwt~blength + gaweeks,data = .x)),
     nest_mod = map(train,~lm(bwt~bhead * blength * babysex,data = .x)),
-    self_mod = map(train,~lm(bwt~delwt + bhead + blength,data = .x))
+    self_mod = map(train,~lm(bwt~bhead+blength+mrace+delwt+smoken+gaweeks,data = bw_df))
   ) %>% 
   mutate(
     rmse_non_nest   = map2_dbl(non_nest_mod, test, ~rmse(model = .x, data = .y)),
@@ -225,12 +250,13 @@ cv_df %>%
 
 ```
 
-My model which set `delwt`(mother’s weight at delivery,pounds),`bhead`(baby’s head circumference at birth,centimeters),`blength`(baby’s length at birth,centimeteres) as predictors has a subtle lower rmse than the other two models. Meanwhile, my model has fewer predictors which may cause lower bias when predicting the birthweight.
+My model which set `delwt`(mother’s weight at delivery,pounds),`bhead`(baby’s head circumference at birth,centimeters),`blength`(baby’s length at birth,centimeteres) ,`mrace`( mother’s race (1= White, 2 = Black, 3 = Asian, 4 = Puerto Rican, 8 = Other)),`smoken`(average number of cigarettes smoked per day during pregnancy),`gaweeks`(gestational age in weeks) as predictors has a subtle lower rmse than the other two models. 
 
+```{r}
+broom::tidy(fit_self) %>% knitr::kable()
+```
 
-
-
-
+Meanwhile, there are the coefficiences of my model, from which we can see that :(1)compared to white woman, black and Puerto Rican women tend to diliver babies with less wight on the significance of 0.01.(2)when mother’s weight at delivery increases by 1 pounds, we may expect 2.28 grams increasing on babies weight.(3)when mother’s average number of cigarettes smoked per day during pregnancy increases by 1 , we may expect 4.84 grams losting on babies weight.(4)when mother’s gestational age increases by 1 week,we may expect 12.34 grams increasing on babies weight.
 
 
 
